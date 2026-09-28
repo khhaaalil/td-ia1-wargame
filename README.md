@@ -1,7 +1,7 @@
 # TD IA1 - Wargame
 
-## name : Omar Hachani
-## M1 IISC, group 1
+name : Omar Hachani
+M1 IISC, group 1
 
 ## Getting started
 
