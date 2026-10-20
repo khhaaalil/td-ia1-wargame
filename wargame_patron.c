@@ -210,7 +210,7 @@ void f_affiche_plateau(Pion *plateau)
 }
 
 
-int f_gagnant()
+int f_gagnant() // si retour, la partie est finie
 {
 	int i, j, somme1=0, somme2=0;
 
@@ -314,7 +314,7 @@ int f_test_mouvement(Pion *plateau, int l1, int c1, int l2, int c2, int couleur)
 		return 1;
 
 	if(l1-l2 >1 || l2-l1 >1 || c1-c2 >1 || c2-c1 >1 || (l1==l2 && c1==c2))
-		retour = 1;
+		return 1;
 #ifdef DEBUG
 	printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
 #endif
@@ -451,7 +451,8 @@ Pion* f_raz_plateau()
 //Fonction min trouve le minimum des noeuds fils
 ??? f_min(???)
 		{
-	/** A remplir **/
+		/** A remplir **/
+		if //profondeur maximale atteinte	
 		}
 
 //Fonction max trouve le maximum des noeuds fils
