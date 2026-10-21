@@ -412,9 +412,11 @@ int f_valeur(Pion* jeu, int joueur)
 }
 
 //fonction d'évaluation
-int f_eval(Pion* jeu,int joueur)
+int f_eval(Pion* jeu,int joueur) // compares power of both armies
 {
-	/** A vous de trouver une fonction efficace **/
+	int score;
+	score = f_valeur(jeu, joueur) - f_valeur(jeu, -joueur);
+	return score;
 }
 
 //copie du plateau
@@ -448,18 +450,112 @@ Pion* f_raz_plateau()
 	return jeu;
 }
 
-//Fonction min trouve le minimum des noeuds fils
-??? f_min(???)
+//Fonction min : trouve le minimum des noeuds fils
+// jeu = board, profondeur = depth, recursivity index (max is 3)
+// joueur = IA's color 
+int f_min(Pion *jeu, int profondeur, int joueur)
+{
+	// annonce f_max au compilateur car sa definition est plus bas
+	int f_max(Pion *jeu, int profondeur, int joueur);
+
+	// l, c : lign, column ; 
+	// dl, dc : deplacement ligne, déplacement colonne (movement lign, movement column, used in f_test_mouvement..)
+	int l, c, dl, dc, score, mini = INFINI;
+
+	// board copy, so that we can do operations on the board without touching the original one
+	Pion copie[NB_LIGNES * NB_COLONNES];
+
+	// creating a save of the actual board, so that we dont lose the 
+	Pion *sauvegarde;
+
+	// max depth achieved  
+	if(profondeur <= 0)
+		return f_eval(jeu, joueur);
+
+	// opponent's turn : 
+	for(l=0; l<NB_LIGNES; l++)
+	{
+		for(c=0; c<NB_COLONNES; c++)
 		{
-		/** A remplir **/
-		if //profondeur maximale atteinte	
+			// l*NB_COLONNES+c = index of pawn on the board
+			// ignoring cases that dont contain opponent's pawns
+			if(jeu[l*NB_COLONNES+c].couleur == -joueur){
+
+			// trying all possible movements (except no movement (0,0))
+			for(dl=-1; dl<=1; dl++)
+			{
+				for(dc=-1; dc<=1; dc++)
+				{
+					// if movement is possible we can simulate our opponent's from a copy of our board 
+					if(f_test_mouvement(jeu, l, c, l+dl, c+dc, -joueur) == 0)
+					{
+						f_copie_plateau(jeu, copie);
+
+						// f_bataille works with the global variable, that's why we had to make a checkpoint (*sauvegarde)
+						sauvegarde = plateauDeJeu;
+						plateauDeJeu = copie;
+						f_bouge_piece(copie, l, c, l+dl, c+dc, -joueur);
+
+						// board back to normal
+						plateauDeJeu = sauvegarde;
+
+						// next turn
+						score = f_max(copie, profondeur-1, joueur);
+
+						// we keep the smallest result
+						if(score < mini)
+							mini = score;
+					}
+
+				}
+			}
 		}
 
-//Fonction max trouve le maximum des noeuds fils
-??? f_max(???)
-		{
-	/** A remplir **/
 		}
+	}
+	// returning the smallest score
+	return mini;
+}
+
+//Fonction max trouve le maximum des noeuds fils
+// same as f_min, so i won't comment a lot sorry 
+int f_max(Pion *jeu, int profondeur, int joueur)
+{
+	int l, c, dl, dc, score, maxi = -INFINI;
+	Pion copie[NB_LIGNES * NB_COLONNES];
+	Pion *sauvegarde;
+
+	if(profondeur <= 0)
+		return f_eval(jeu, joueur);
+
+	for(l=0; l<NB_LIGNES; l++)
+	{
+		for(c=0; c<NB_COLONNES; c++)
+		{
+			if(jeu[l*NB_COLONNES+c].couleur == joueur)
+			{
+				for(dl=-1; dl<=1; dl++)
+				{
+					for(dc=-1; dc<=1; dc++)
+					{
+						if(f_test_mouvement(jeu, l, c, l+dl, c+dc, joueur) == 0)
+						{
+							f_copie_plateau(jeu, copie);
+							sauvegarde = plateauDeJeu;
+							plateauDeJeu = copie;
+							f_bouge_piece(copie, l, c, l+dl, c+dc, joueur);
+							plateauDeJeu = sauvegarde;
+							score = f_min(copie, profondeur-1, joueur);
+							if(score > maxi)
+								maxi = score;
+						}
+					}
+				}
+			}
+		}
+	}
+	return maxi;
+}
 
 /**
  * Calcule et joue le meilleur cout
