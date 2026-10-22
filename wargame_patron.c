@@ -412,10 +412,43 @@ int f_valeur(Pion* jeu, int joueur)
 }
 
 //fonction d'évaluation
-int f_eval(Pion* jeu,int joueur) // compares power of both armies
+int f_eval(Pion* jeu,int joueur) // compares power and progress of both armies
 {
-	int score;
-	score = f_valeur(jeu, joueur) - f_valeur(jeu, -joueur);
+	// l, c : line, column ; 
+	// avance : pawn's progress towards the opposite side
+	int l, c, score, avance;
+
+	// sum of squared progress for each army
+	int avancement1 = 0, avancement2 = 0;
+
+	// comparing both armies' power, with 10 points for each point of power
+	score = 10 * (f_valeur(jeu, joueur) - f_valeur(jeu, -joueur)); // = 10* f_valeur(player1) - 10*f_valeur(player2)
+
+	// checking every case of the board
+	for(l=0; l<NB_LIGNES; l++)
+	{
+		for(c=0; c<NB_COLONNES; c++)
+		{
+			// player 1 starts from the last line and tries to reach line 0
+			if(jeu[l*NB_COLONNES+c].couleur == 1)
+			{
+				avance = NB_LIGNES-1-l;
+				// using the square so that pawns closer to victory count more
+				avancement1 += avance * avance;
+			}
+			// player -1 moves in the opposite direction
+			else if(jeu[l*NB_COLONNES+c].couleur == -1)
+			{
+				avance = l;
+				avancement2 += avance * avance;
+			}
+		}
+	}
+
+	// keeping the IA's point of view : joueur changes the sign if the IA is -1
+	score += joueur * (avancement1 - avancement2);
+	// positive score is better for the IA, negative score is better for the opponent
+	
 	return score;
 }
 
@@ -450,45 +483,65 @@ Pion* f_raz_plateau()
 	return jeu;
 }
 
-//Fonction min : trouve le minimum des noeuds fils
-// jeu = board, profondeur = depth, recursivity index (max is 3)
-// joueur = IA's color 
+// finds the smallest score among the possible moves
+// jeu = board, profondeur = depth, number of moves left to explore
+// joueur = IA's color, stays the same during recursion
 int f_min(Pion *jeu, int profondeur, int joueur)
 {
-	// annonce f_max au compilateur car sa definition est plus bas
+	// prototype of f_max because it's defined later in this code
 	int f_max(Pion *jeu, int profondeur, int joueur);
 
-	// l, c : lign, column ; 
-	// dl, dc : deplacement ligne, déplacement colonne (movement lign, movement column, used in f_test_mouvement..)
+	// l, c : line, column ; 
+	// dl, dc : déplacement ligne, colonne ; movement in each direction (-1, 0 or 1)
+	// starting high so that we can keep the smallest score
 	int l, c, dl, dc, score, mini = INFINI;
+
+	// winning color : 1 or -1, or 0 if there's no winner yet
+	int gagnant;
 
 	// board copy, so that we can do operations on the board without touching the original one
 	Pion copie[NB_LIGNES * NB_COLONNES];
 
-	// creating a save of the actual board, so that we dont lose the 
+	// saving the global board's address so that we can restore it afterwards
 	Pion *sauvegarde;
 
-	// max depth achieved  
+	// f_gagnant uses the global variable, so we make it read the simulated board
+	// so we know the winning moves (if there's one)
+	sauvegarde = plateauDeJeu;
+	plateauDeJeu = jeu;
+	gagnant = f_gagnant();
+	plateauDeJeu = sauvegarde;
+
+	// if the IA already won, we stop this branch with the highest score
+	if(gagnant == joueur)
+		return INFINI;
+
+	// if the opponent won, we return the lowest score
+	if(gagnant == -joueur)
+		return -INFINI;
+
+	// max depth achieved : evaluating this board from the IA's point of view
 	if(profondeur <= 0)
 		return f_eval(jeu, joueur);
 
-	// opponent's turn : 
+	// opponent's turn : checking every case of the board
 	for(l=0; l<NB_LIGNES; l++)
 	{
 		for(c=0; c<NB_COLONNES; c++)
 		{
 			// l*NB_COLONNES+c = index of pawn on the board
-			// ignoring cases that dont contain opponent's pawns
+			// only exploring cases that contain an opponent's pawn
 			if(jeu[l*NB_COLONNES+c].couleur == -joueur){
 
-			// trying all possible movements (except no movement (0,0))
+			// trying all directions, f_test_mouvement will reject (0,0)
 			for(dl=-1; dl<=1; dl++)
 			{
 				for(dc=-1; dc<=1; dc++)
 				{
-					// if movement is possible we can simulate our opponent's from a copy of our board 
+					// if the movement is possible, we simulate the opponent's move on a copy
 					if(f_test_mouvement(jeu, l, c, l+dl, c+dc, -joueur) == 0)
 					{
+						// starting from the same parent board for each move
 						f_copie_plateau(jeu, copie);
 
 						// f_bataille works with the global variable, that's why we had to make a checkpoint (*sauvegarde)
@@ -496,13 +549,13 @@ int f_min(Pion *jeu, int profondeur, int joueur)
 						plateauDeJeu = copie;
 						f_bouge_piece(copie, l, c, l+dl, c+dc, -joueur);
 
-						// board back to normal
+						// restoring the global pointer, the simulated move stays in copie
 						plateauDeJeu = sauvegarde;
 
-						// next turn
+						// IA's turn next, with one less move left to explore
 						score = f_max(copie, profondeur-1, joueur);
 
-						// we keep the smallest result
+						// choosing the smallest score for the IA
 						if(score < mini)
 							mini = score;
 					}
@@ -522,8 +575,18 @@ int f_min(Pion *jeu, int profondeur, int joueur)
 int f_max(Pion *jeu, int profondeur, int joueur)
 {
 	int l, c, dl, dc, score, maxi = -INFINI;
+	int gagnant;
 	Pion copie[NB_LIGNES * NB_COLONNES];
 	Pion *sauvegarde;
+
+	sauvegarde = plateauDeJeu;
+	plateauDeJeu = jeu;
+	gagnant = f_gagnant();
+	plateauDeJeu = sauvegarde;
+	if(gagnant == joueur)
+		return INFINI;
+	if(gagnant == -joueur)
+		return -INFINI;
 
 	if(profondeur <= 0)
 		return f_eval(jeu, joueur);
