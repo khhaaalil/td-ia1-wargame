@@ -625,11 +625,85 @@ int f_max(Pion *jeu, int profondeur, int joueur)
  * */
 void f_IA(int joueur)
 {
+	// l, c : starting case ; 
+	//dl, dc : déplacement ligne, colonne; movement in each direction
+	int l, c, dl, dc;
+	
+	// score : score of the move that we just did
+	// gagnant = 0 if no winner yet, or the color of the winnre 
+	int score, gagnant;
+
+	//meilleur score : best score for the moment
+	// trouve : 0 if no valid move yet, 1 else
+	int meilleurScore = -INFINI, trouve = 0;
+
+	// depth : CONSTANT
+	int profondeur = 3;
+
+	// saving the coordinates of the best move
+	int meilleureLigneDepart = 0, meilleureColonneDepart = 0;
+	int meilleureLigneArrivee = 0, meilleureColonneArrivee = 0;
+	Pion copie[NB_LIGNES * NB_COLONNES];
+	Pion *sauvegarde;
+
 #ifdef DEBUG
 	printf("dbg: entering %s %d\n", __FUNCTION__, __LINE__);
 #endif
 
-	/** A remplir **/
+	// no move to play if the game is already over
+	if(f_gagnant() != 0)
+		return;
+
+	// checking every pawn that belongs to the IA
+	for(l=0; l<NB_LIGNES; l++)
+	{
+		for(c=0; c<NB_COLONNES; c++)
+		{
+			if(plateauDeJeu[l*NB_COLONNES+c].couleur == joueur)
+			{
+				for(dl=-1; dl<=1; dl++)
+				{
+					for(dc=-1; dc<=1; dc++)
+					{
+						if(f_test_mouvement(plateauDeJeu, l, c, l+dl, c+dc, joueur) == 0)
+						{
+							// trying this move on a fresh copy of the real board
+							f_copie_plateau(plateauDeJeu, copie);
+							sauvegarde = plateauDeJeu;
+							plateauDeJeu = copie;
+
+							f_bouge_piece(copie, l, c, l+dl, c+dc, joueur);
+							gagnant = f_gagnant();
+							plateauDeJeu = sauvegarde;
+
+							// opponent's turn next, only 2 moves left to explore
+							score = f_min(copie, profondeur-1, joueur);
+
+							// accepting the first move even if every score is -INFINI
+							// an immediate win is preferred when scores are equal
+							if(!trouve || score > meilleurScore || gagnant == joueur)
+							{
+								meilleurScore = score;
+								meilleureLigneDepart = l;
+								meilleureColonneDepart = c;
+								meilleureLigneArrivee = l+dl;
+								meilleureColonneArrivee = c+dc;
+								trouve = 1;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// playing only the chosen move on the real board
+	if(trouve)
+	{
+		f_bouge_piece(plateauDeJeu,
+			meilleureLigneDepart, meilleureColonneDepart,
+			meilleureLigneArrivee, meilleureColonneArrivee, joueur);
+	}
 
 #ifdef DEBUG
 	printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
