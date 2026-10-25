@@ -19,6 +19,9 @@ typedef struct pion_s
 
 Pion *plateauDeJeu;
 
+// total number of nodes explored during the whole game
+unsigned long compteurNoeuds = 0;
+
 void f_affiche_plateau(Pion *plateau);
 int f_convert_char2int(char c);
 char f_convert_int2char(int i);
@@ -488,6 +491,9 @@ Pion* f_raz_plateau()
 // joueur = IA's color, stays the same during recursion
 int f_min(Pion *jeu, int profondeur, int joueur)
 {
+	// this call represents one node explored by Minimax
+	compteurNoeuds++;
+
 	// prototype of f_max because it's defined later in this code
 	int f_max(Pion *jeu, int profondeur, int joueur);
 
@@ -574,6 +580,9 @@ int f_min(Pion *jeu, int profondeur, int joueur)
 // same as f_min, so i won't comment a lot sorry 
 int f_max(Pion *jeu, int profondeur, int joueur)
 {
+	// this call represents one node explored by Minimax
+	compteurNoeuds++;
+
 	int l, c, dl, dc, score, maxi = -INFINI;
 	int gagnant;
 	Pion copie[NB_LIGNES * NB_COLONNES];
@@ -704,6 +713,7 @@ void f_IA(int joueur)
 			meilleureLigneDepart, meilleureColonneDepart,
 			meilleureLigneArrivee, meilleureColonneArrivee, joueur);
 	}
+	printf("total noeuds explores : %lu\n", compteurNoeuds);
 
 #ifdef DEBUG
 	printf("dbg: exiting %s %d\n", __FUNCTION__, __LINE__);
