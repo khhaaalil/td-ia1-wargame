@@ -432,14 +432,14 @@ int f_eval(Pion* jeu,int joueur) // compares power and progress of both armies
 	{
 		for(c=0; c<NB_COLONNES; c++)
 		{
-			// player 1 starts from the last line and tries to reach line 0
+			// player 1 'x' starts from the last line and tries to reach line 0
 			if(jeu[l*NB_COLONNES+c].couleur == 1)
 			{
 				avance = NB_LIGNES-1-l;
 				// using the square so that pawns closer to victory count more
 				avancement1 += avance * avance;
 			}
-			// player -1 moves in the opposite direction
+			// player -1 'o' moves in the opposite direction
 			else if(jeu[l*NB_COLONNES+c].couleur == -1)
 			{
 				avance = l;
